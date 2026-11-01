@@ -1,0 +1,12 @@
+
+{
+  "name": "kasirpro-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "bcryptjs": "^3.0.2",
+    "jose": "^6.1.0"
+  }
+}
