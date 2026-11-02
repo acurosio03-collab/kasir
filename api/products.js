@@ -1,8 +1,17 @@
-
 import { sql } from "../lib/db.js";
+import { getSessionUser } from "../lib/session.js";
 
 export default async function handler(req, res) {
   try {
+    const user = await getSessionUser(req);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Silakan login terlebih dahulu"
+      });
+    }
+
     if (req.method === "GET") {
       const products = await sql`
         SELECT
@@ -18,6 +27,7 @@ export default async function handler(req, res) {
           category_id,
           created_at
         FROM products
+        WHERE owner_id = ${user.userId}
         ORDER BY created_at DESC
       `;
 
@@ -31,6 +41,7 @@ export default async function handler(req, res) {
       success: false,
       message: "Method tidak diizinkan"
     });
+
   } catch (error) {
     console.error("Products API error:", error);
 
@@ -39,4 +50,5 @@ export default async function handler(req, res) {
       message: "Gagal mengambil data produk"
     });
   }
-      }
+}
+
