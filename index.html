@@ -403,15 +403,7 @@ function render(){
  touch();
  if(isLocked()&&activePage!=='subscription'){activePage='subscription';$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='subscription'))}
  const titles={dashboard:'Dashboard',pos:'Kasir / POS',products:'Produk & Stok',transactions:'Riwayat Transaksi',reports:'Laporan Bisnis',expenses:'Pengeluaran',settings:'Pengaturan & Struk',subscription:'Akun & Langganan'};
- $('#topTitle').textContent=titles[activePage]||'KASIRPRO';
- $('#content').innerHTML=({dashboard,products:productsPage,pos:posPage,transactions:transactionsPage,reports:reportsPage,expenses:expensesPage,settings:settingsPage,subscription:subscriptionPage})[activePage]();
- if(activePage==='products')bindProducts();
- if(activePage==='pos'){bindPos();updateTotals()}
- if(activePage==='transactions')bindTransactions();
- if(activePage==='settings')bindSettings();
- if(activePage==='subscription')bindSub();
- updateSubBadge();
-}
+ $('#content').innerHTML=({dashboard,products:productsPage,pos:posPage,transactions:transactionsPage,reports:reportsPage,expenses:expensesPage,cashiers:cashiersPage,settings:settingsPage,subscription:subscriptionPage})[activePage]();
 applyPage();applyBrand();render();syncSub();
 </script>
 
