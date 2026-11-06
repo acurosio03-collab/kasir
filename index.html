@@ -413,4 +413,17 @@ function render(){
  updateSubBadge();
 }
 applyPage();applyBrand();render();syncSub();
-</script></body></html>
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js")
+      .then(() => console.log("KASIRPRO PWA aktif"))
+      .catch(error => console.error("PWA gagal:", error));
+  });
+}
+</script>
+
+</body>
+</html>
