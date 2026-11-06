@@ -13,3 +13,6 @@ module.exports = wrap(async (req, res) => {
   if (!checkPassword(pw, u.pass_hash)) return send(res, 401, { error: 'Email atau password salah.' });
   send(res, 200, { token: signToken({ uid: u.id, exp: Date.now() + SESSION_DAYS * 864e5 }), ...pub(u) });
 });
+if (u.is_active === false) {
+  return send(res, 403, { error: 'Akun Kasir dinonaktifkan oleh Admin toko.' });
+}
