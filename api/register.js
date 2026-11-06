@@ -1,4 +1,3 @@
-
 const {
   sql, send, method, body, signToken, hashPassword,
   pub, wrap, normPhone, TRIAL_DAYS, SESSION_DAYS
@@ -26,47 +25,46 @@ module.exports = wrap(async (req, res) => {
     return send(res, 400, { error: 'Password minimal 8 karakter.' });
 
   try {
+    const existing = await sql()`SELECT id FROM users LIMIT 1`;
+
+    if (existing.length > 0) {
+      return send(res, 403, {
+        error: 'Pendaftaran umum ditutup. Hubungi Admin toko untuk membuat akun.'
+      });
+    }
+
     const rows = await sql()`
-      WITH new_user AS (
-        INSERT INTO users
-          (email, name, phone, pass_hash, trial_ends_at, role)
-        VALUES (
-          ${email},
-          ${name},
-          ${phone},
-          ${hashPassword(pw)},
-          now() + (${TRIAL_DAYS}::int * interval '1 day'),
-          'admin'
-        )
-        RETURNING *
+      INSERT INTO users
+        (email, name, phone, pass_hash, trial_ends_at, role)
+      VALUES (
+        ${email}, ${name}, ${phone}, ${hashPassword(pw)},
+        now() + (${TRIAL_DAYS}::int * interval '1 day'),
+        'admin'
       )
-      UPDATE users AS u
-      SET owner_id = n.id
-      FROM new_user AS n
-      WHERE u.id = n.id
-      RETURNING u.*
+      RETURNING *
     `;
 
     const u = rows[0];
+
+    await sql()`
+      UPDATE users SET owner_id = ${u.id}
+      WHERE id = ${u.id}
+    `;
 
     send(res, 200, {
       token: signToken({
         uid: u.id,
         exp: Date.now() + SESSION_DAYS * 864e5
       }),
-      ...pub(u)
+      ...pub({ ...u, owner_id: u.id })
     });
-
   } catch (e) {
     if (e && e.code === '23505') {
-      const which = String(e.constraint || e.detail || '');
       return send(res, 409, {
-        error: /phone/.test(which)
-          ? 'Nomor WhatsApp ini sudah terdaftar. Silakan masuk.'
-          : 'Email ini sudah terdaftar. Silakan masuk.'
+        error: 'Email atau nomor WhatsApp sudah terdaftar.'
       });
     }
     throw e;
   }
 });
-      
+                
