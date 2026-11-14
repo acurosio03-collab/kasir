@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>KASIRPRO — Panel Admin</title>
+<style>
+:root{--bg:#f4f7fb;--ink:#182230;--muted:#718096;--line:#e5eaf1;--green:#16a36a;--red:#dc4c4c;--amber:#d88b12;--navy:#132238}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header b{font-size:16px}main{max-width:1200px;margin:auto;padding:20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+h3{margin:0 0 12px;font-size:15px}input,select,button{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #dfe5ed;background:#fff;min-width:0}
+button{cursor:pointer;border:0;font-weight:650;background:#edf2f7;color:#253449}button.p{background:var(--green);color:#fff}button.d{background:#fff0f0;color:var(--red)}button.t{padding:6px 9px;font-size:12px}
+button:disabled{opacity:.5;cursor:not-allowed}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row label{font-size:12px;font-weight:700;display:block;margin-bottom:5px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.tabs button.on{background:var(--green);color:#fff}
+.tw{overflow:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;padding:10px;border-bottom:1px solid var(--line)}td{padding:10px;border-bottom:1px solid #edf0f5;font-size:13px;vertical-align:middle}
+.b{display:inline-block;border-radius:20px;padding:3px 9px;font-size:11px;font-weight:750;background:#edf8f2;color:#0b8854}.b.w{background:#fff5df;color:#a76b00}.b.r{background:#ffeded;color:#c13c3c}.b.g{background:#eef2f6;color:#4a5568}
+.msg{margin:10px 0;font-size:13px}.err{color:var(--red)}.ok{color:#0b8854}.muted{color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}.stat small{color:var(--muted);font-weight:650;font-size:12px}.stat div{font-size:24px;font-weight:850;letter-spacing:-.5px;margin-top:6px}.stat span{font-size:11px;color:var(--muted)}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+</style></head><body>
+<header><b>🔐 KASIRPRO — Panel Admin Langganan</b><span id="who"></span></header>
+<main>
+<div class="card" id="loginCard">
+ <h3>Masuk admin</h3>
+ <div class="row"><div><label>Kunci admin (ADMIN_KEY)</label><input id="key" type="password" autocomplete="off" style="min-width:260px"></div><button class="p" id="enter">Masuk</button></div>
+ <div class="msg err" id="loginErr"></div>
+</div>
+<div id="app" style="display:none">
+ <div class="tabs"><button data-t="ov" class="on">Ringkasan</button><button data-t="users">Pelanggan</button><button data-t="inv">Tagihan</button><button data-t="plans">Paket & harga</button><button id="out">Keluar</button></div>
+
+ <div id="t-ov">
+  <div class="stats" id="ovStats"></div>
+  <div class="card"><h3>Perlu ditindak hari ini</h3><div class="tw" id="ovTodo"></div></div>
+ </div>
+
+ <div id="t-users" class="card" style="display:none">
+  <h3>Pelanggan <span class="muted" id="uCount"></span></h3>
+  <div class="row" style="margin-bottom:12px">
+   <input id="uq" placeholder="Cari nama / email / WhatsApp…" style="min-width:240px">
+   <select id="uf"><option value="">Semua status</option><option value="active">Aktif</option><option value="trial">Uji coba</option><option value="grace">Jatuh tempo (toleransi)</option><option value="expired">Berakhir</option><option value="revoked">Diblokir</option></select>
+   <button id="uReload">↻ Muat ulang</button>
+  </div>
+  <div class="tw" id="uTable"></div>
+ </div>
+
+ <div id="t-inv" class="card" style="display:none">
+  <h3>Tagihan</h3>
+  <div class="row" style="margin-bottom:12px"><select id="if"><option value="unpaid">Belum dibayar</option><option value="paid">Lunas</option><option value="void">Dibatalkan</option><option value="">Semua</option></select><button id="iReload">↻ Muat ulang</button></div>
+  <div class="tw" id="iTable"></div>
+ </div>
+
+ <div id="t-plans" class="card" style="display:none">
+  <h3>Paket & harga</h3>
+  <p class="muted" style="margin-top:-6px">Perubahan harga hanya berlaku untuk tagihan BARU. Tagihan yang sudah terbit tidak berubah.</p>
+  <div class="tw" id="pTable"></div>
+  <h3 style="margin-top:18px">Tambah / ubah paket</h3>
+  <div class="row">
+   <div><label>Kode</label><input id="pId" maxlength="6" style="width:80px" placeholder="M"></div>
+   <div><label>Nama</label><input id="pName" maxlength="30" placeholder="Bulanan"></div>
+   <div><label>Hari</label><input id="pDays" type="number" min="1" style="width:100px" value="30"></div>
+   <div><label>Harga (Rp)</label><input id="pPrice" type="number" min="0" style="width:140px" value="49000"></div>
+   <button class="p" id="pSave">Simpan</button>
+  </div>
+  <div class="msg" id="pMsg"></div>
+ </div>
+</div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
+const fmt=t=>t?new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
+let KEY='';try{KEY=sessionStorage.getItem('kp_admin')||''}catch{}
+let USERS=[],PLANS=[];
+async function call(action,data={}){
+ const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':KEY},body:JSON.stringify({action,...data})});
+ let d={};try{d=await r.json()}catch{}
+ if(!r.ok)throw Object.assign(new Error(d.error||'Error '+r.status),{status:r.status});
+ return d}
+async function enter(){
+ $('#loginErr').textContent='';
+ try{await call('ping');try{sessionStorage.setItem('kp_admin',KEY)}catch{}
+  $('#loginCard').style.display='none';$('#app').style.display='';$('#who').textContent='Admin';loadOverview();loadUsers()}
+ catch(e){$('#loginErr').textContent=e.status===401?'Kunci admin salah.':e.message}}
+$('#enter').onclick=()=>{KEY=$('#key').value;enter()};
+$('#key').onkeydown=e=>{if(e.key==='Enter')$('#enter').click()};
+$('#out').onclick=()=>{try{sessionStorage.removeItem('kp_admin')}catch{}location.reload()};
+const TABS=['ov','users','inv','plans'];
+document.querySelectorAll('.tabs [data-t]').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.tabs [data-t]').forEach(x=>x.classList.toggle('on',x===b));
+ TABS.forEach(t=>$('#t-'+t).style.display=t===b.dataset.t?'':'none');
+ const t=b.dataset.t;if(t==='ov')loadOverview();if(t==='users')loadUsers();if(t==='inv')loadInvoices();if(t==='plans')loadPlans()});
+
+const STATE={active:['Aktif',''],trial:['Uji coba','w'],grace:['Jatuh tempo','w'],expired:['Berakhir','g'],revoked:['Diblokir','r']};
+function badge(u){const [t,c]=STATE[u.state]||['?','g'];return `<span class="b ${c}">${t}</span>`}
+function waLink(phone,text){return 'https://wa.me/'+encodeURIComponent(phone)+'?text='+encodeURIComponent(text)}
+function remindText(u){
+ const inv=u.openInvoice,end=fmt(u.end);
+ const tagihan=inv?`\nTagihan: ${inv.no}\nJumlah: ${rp(inv.amount)}`:'';
+ if(u.state==='expired'||u.state==='grace')return `Halo ${u.name}, langganan KASIRPRO AI Anda sudah berakhir pada ${end}.${tagihan}\n\nSilakan lakukan pembayaran agar kasir bisa dipakai kembali. Terima kasih 🙏`;
+ return `Halo ${u.name}, masa aktif KASIRPRO AI Anda akan berakhir pada ${end} (${Math.max(0,u.daysLeft)} hari lagi).${tagihan}\n\nSilakan lakukan pembayaran sebelum tanggal tersebut agar kasir tidak terkunci. Terima kasih 🙏`}
+function sendInvoiceText(u,inv){return `Halo ${u.name}, berikut tagihan langganan KASIRPRO AI Anda:\nNo. Tagihan: ${inv.no}\nPaket: ${u.planName}\nJumlah: ${rp(inv.amount)}\n\nSetelah pembayaran kami konfirmasi, masa aktif otomatis bertambah. Terima kasih 🙏`}
+
+async function loadOverview(){
+ try{
+  const [o,u]=await Promise.all([call('overview'),call('users')]);USERS=u.users;
+  const c=o.counts;
+  $('#ovStats').innerHTML=[
+   ['Pelanggan aktif',c.active,'sudah bayar & berlaku'],['Uji coba',c.trial,'belum bayar pertama'],['Jatuh tempo',c.grace,'masa toleransi, belum terkunci'],['Terkunci / berakhir',c.expired+c.revoked,'perlu ditagih / dimenangkan kembali'],
+   ['Pendapatan bulanan (MRR)',rp(o.mrr),'estimasi dari pelanggan aktif'],['Terbayar bulan ini',rp(o.paidThisMonth),'tagihan lunas bulan berjalan'],['Tagihan belum bayar',o.unpaidCount,rp(o.unpaidSum)],['Habis ≤ 7 hari',o.due7,'aktif/uji coba yang segera berakhir']
+  ].map(([l,v,n])=>`<div class="stat"><small>${l}</small><div>${v}</div><span>${n}</span></div>`).join('');
+  const todo=USERS.filter(x=>!x.revoked&&(x.state==='grace'||x.state==='expired'&&x.end>Date.now()-33*864e5||((x.state==='active'||x.state==='trial')&&x.daysLeft<=7)))
+   .sort((a,b)=>a.end-b.end);
+  $('#ovTodo').innerHTML=todo.length?table(todo):'<span class="muted">Tidak ada yang perlu ditindak. 🎉</span>';
+ }catch(e){$('#ovStats').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+
+function table(list){
+ return `<table><thead><tr><th>Pelanggan</th><th>WhatsApp</th><th>Paket</th><th>Status</th><th>Berakhir</th><th>Tagihan terbuka</th><th>Oto</th><th>Aksi</th></tr></thead><tbody>${list.map(u=>{
+  const inv=u.openInvoice;
+  return `<tr><td><b>${esc(u.name)}</b><div class="muted" style="font-size:11px">${esc(u.email)}</div></td>
+  <td><a href="https://wa.me/${esc(u.phone)}" target="_blank" rel="noopener">${esc(u.phone)}</a></td>
+  <td>${esc(u.planName)}<div class="muted" style="font-size:11px">${rp(u.planPrice)}</div></td>
+  <td>${badge(u)}</td>
+  <td>${fmt(u.end)}<div class="muted" style="font-size:11px">${u.daysLeft>=0?u.daysLeft+' hari lagi':Math.abs(u.daysLeft)+' hari lewat'}</div></td>
+  <td>${inv?`<b>${esc(inv.no)}</b><div class="muted" style="font-size:11px">${rp(inv.amount)}</div>`:'<span class="muted">-</span>'}</td>
+  <td>${u.autoRenew?'<span class="b">Ya</span>':'<span class="b g">Mati</span>'}</td>
+  <td><div class="acts">
+   ${inv?`<button class="t p" data-a="confirm" data-i="${inv.id}" data-u="${u.id}">✓ Konfirmasi bayar</button>`:`<button class="t" data-a="mkinv" data-u="${u.id}">+ Buat tagihan</button>`}
+   <a href="${waLink(u.phone,remindText(u))}" target="_blank" rel="noopener"><button class="t">Ingatkan WA</button></a>
+   <button class="t" data-a="extend" data-u="${u.id}">+ Hari</button>
+   <button class="t" data-a="auto" data-u="${u.id}" data-on="${!u.autoRenew}">${u.autoRenew?'Matikan oto':'Nyalakan oto'}</button>
+   <button class="t" data-a="pw" data-u="${u.id}">Reset password</button>
+   <button class="t ${u.revoked?'p':'d'}" data-a="revoke" data-u="${u.id}" data-v="${!u.revoked}">${u.revoked?'Buka blokir':'Blokir'}</button>
+  </div></td></tr>`}).join('')}</tbody></table>`}
+
+async function loadUsers(){
+ try{USERS=(await call('users')).users;renderUsers()}catch(e){$('#uTable').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+function renderUsers(){
+ const q=$('#uq').value.toLowerCase(),f=$('#uf').value,list=USERS.filter(u=>(u.name+u.email+u.phone).toLowerCase().includes(q)&&(!f||u.state===f));
+ $('#uCount').textContent='('+list.length+' dari '+USERS.length+')';
+ $('#uTable').innerHTML=list.length?table(list):'<span class="muted">Tidak ada pelanggan.</span>'}
+$('#uq').oninput=renderUsers;$('#uf').onchange=renderUsers;$('#uReload').onclick=loadUsers;
+
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('button[data-a]');if(!b)return;
+ const a=b.dataset.a,uid=Number(b.dataset.u),u=USERS.find(x=>x.id===uid);
+ try{
+  if(a==='confirm'){
+   const m=prompt(`Konfirmasi pembayaran ${u.name} sebesar ${rp(u.openInvoice.amount)}.\nMetode: Transfer bank / QRIS / E-wallet / Tunai / Lainnya`,'Transfer bank');
+   if(m===null)return;
+   const ref=prompt('Catatan / no. referensi pembayaran (boleh kosong):','')||'';
+   const d=await call('confirm',{invoiceId:Number(b.dataset.i),method:m.trim(),ref});
+   alert('Pembayaran dikonfirmasi. Masa aktif sampai '+fmt(d.paidUntil)+'.');reloadAll();
+  }else if(a==='mkinv'){
+   const opts=PLANS.length?PLANS:(await call('plans')).plans;PLANS=opts;
+   const id=prompt('Kode paket untuk tagihan baru ('+opts.filter(p=>p.active).map(p=>p.id+'='+p.name+' '+rp(p.price)).join(', ')+'):',u.planId);
+   if(id===null)return;
+   const d=await call('invoice_create',{userId:uid,planId:id.trim().toUpperCase()});
+   if(confirm(`Tagihan ${d.invoice.no} (${rp(d.invoice.amount)}) dibuat. Kirim ke ${u.name} via WhatsApp sekarang?`))window.open(waLink(u.phone,sendInvoiceText(u,{no:d.invoice.no,amount:d.invoice.amount})),'_blank');
+   reloadAll();
+  }else if(a==='extend'){
+   const d=prompt('Tambah berapa hari? (angka negatif untuk mengurangi)','30');if(d===null)return;
+   await call('extend',{userId:uid,days:Number(d)});alert('Masa aktif diperbarui.');reloadAll();
+  }else if(a==='auto'){
+   await call('autorenew',{userId:uid,on:b.dataset.on==='true'});reloadAll();
+  }else if(a==='pw'){
+   const p=prompt('Password baru (min. 8 karakter). Kirim ke pelanggan lewat WhatsApp. Semua sesi login lama akan keluar otomatis:');if(p===null)return;
+   await call('resetpw',{userId:uid,password:p});alert('Password diganti.');
+  }else if(a==='revoke'){
+   const v=b.dataset.v==='true';
+   if(!confirm(v?'Blokir akun ini? Pengguna langsung terkunci saat aplikasi terhubung ke server.':'Buka blokir akun ini?'))return;
+   await call('revoke',{userId:uid,revoked:v});reloadAll();
+  }else if(a==='iconfirm'){
+   const m=prompt('Metode pembayaran: Transfer bank / QRIS / E-wallet / Tunai / Lainnya','Transfer bank');if(m===null)return;
+   const ref=prompt('Catatan / no. referensi (boleh kosong):','')||'';
+   const d=await call('confirm',{invoiceId:Number(b.dataset.i),method:m.trim(),ref});
+   alert('Pembayaran dikonfirmasi. Masa aktif sampai '+fmt(d.paidUntil)+'.');reloadAll();
+  }else if(a==='ivoid'){
+   if(!confirm('Batalkan tagihan ini?'))return;
+   await call('void',{invoiceId:Number(b.dataset.i)});reloadAll();
+  }
+ }catch(err){alert(err.message)}});
+function reloadAll(){loadOverview();loadUsers();loadInvoices()}
+
+async function loadInvoices(){
+ try{const rows=(await call('invoices',{status:$('#if').value})).invoices;
+  $('#iTable').innerHTML=rows.length?`<table><thead><tr><th>No.</th><th>Pelanggan</th><th>Paket</th><th>Jumlah</th><th>Dibuat</th><th>Jatuh tempo</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows.map(i=>`<tr><td><b>${esc(i.no)}</b><div class="muted" style="font-size:11px">${i.source==='auto'?'otomatis':i.source==='admin'?'admin':'pelanggan'}</div></td><td>${esc(i.userName)}<div class="muted" style="font-size:11px">${esc(i.userEmail)}</div></td><td>${esc(i.planName)} · ${i.days} hr</td><td><b>${rp(i.amount)}</b></td><td>${fmt(i.createdAt)}</td><td>${fmt(i.dueAt)}</td>
+  <td>${i.status==='paid'?`<span class="b">Lunas ${fmt(i.paidAt)} · ${esc(i.paidMethod)}</span>${i.paidRef?`<div class="muted" style="font-size:11px">${esc(i.paidRef)}</div>`:''}`:i.status==='void'?`<span class="b g">Dibatalkan</span><div class="muted" style="font-size:11px">${esc(i.note)}</div>`:'<span class="b w">Belum dibayar</span>'}</td>
+  <td>${i.status==='unpaid'?`<div class="acts"><button class="t p" data-a="iconfirm" data-i="${i.id}">✓ Konfirmasi bayar</button><button class="t d" data-a="ivoid" data-i="${i.id}">Batalkan</button></div>`:''}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">Tidak ada tagihan.</span>'}
+ catch(e){$('#iTable').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+$('#if').onchange=loadInvoices;$('#iReload').onclick=loadInvoices;
+
+async function loadPlans(){
+ try{PLANS=(await call('plans')).plans;
+  $('#pTable').innerHTML=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Hari</th><th>Harga</th><th>Status</th><th></th></tr></thead><tbody>${PLANS.map(p=>`<tr><td><b>${esc(p.id)}</b></td><td>${esc(p.name)}</td><td>${p.days}</td><td>${rp(p.price)}</td><td>${p.active?'<span class="b">Aktif</span>':'<span class="b g">Nonaktif</span>'}</td><td><button class="t" onclick="editPlan('${esc(p.id)}')">Ubah</button> <button class="t ${p.active?'d':'p'}" onclick="togglePlan('${esc(p.id)}')">${p.active?'Nonaktifkan':'Aktifkan'}</button></td></tr>`).join('')}</tbody></table>`}
+ catch(e){$('#pTable').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+function editPlan(id){const p=PLANS.find(x=>x.id===id);if(!p)return;$('#pId').value=p.id;$('#pName').value=p.name;$('#pDays').value=p.days;$('#pPrice').value=p.price}
+async function togglePlan(id){const p=PLANS.find(x=>x.id===id);if(!p)return;try{await call('plan_save',{...p,active:!p.active});loadPlans()}catch(e){alert(e.message)}}
+$('#pSave').onclick=async()=>{
+ try{await call('plan_save',{id:$('#pId').value,name:$('#pName').value,days:Number($('#pDays').value),price:Number($('#pPrice').value),active:true});
+  $('#pMsg').innerHTML='<span class="ok">Paket disimpan.</span>';loadPlans()}
+ catch(e){$('#pMsg').innerHTML=`<span class="err">${esc(e.message)}</span>`}};
+if(KEY){enter()}
+</script></body></html>
